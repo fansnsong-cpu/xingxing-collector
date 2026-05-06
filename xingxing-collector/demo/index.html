@@ -1,0 +1,1988 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>星星收集家 - Star Collector</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(180deg, #0f0c29 0%, #1a1a3e 50%, #24243e 100%);
+            min-height: 100vh;
+            color: #fff;
+            overflow-x: hidden;
+        }
+
+        /* 星空背景动画 */
+        .stars-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .star {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: #fff;
+            border-radius: 50%;
+            animation: twinkle 3s infinite;
+        }
+
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 1; }
+        }
+
+        /* 顶部栏 */
+        .header {
+            position: relative;
+            z-index: 10;
+            width: 100%;
+            max-width: 500px;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: linear-gradient(180deg, rgba(0,0,0,0.5) 0%, transparent 100%);
+        }
+
+        .level-info {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .level-label {
+            font-size: 11px;
+            color: rgba(255,215,0,0.7);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .level-value {
+            font-size: 18px;
+            font-weight: bold;
+            color: #ffd700;
+            text-shadow: 0 0 10px rgba(255,215,0,0.5);
+        }
+
+        .coins-info {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255,215,0,0.15);
+            padding: 8px 16px;
+            border-radius: 20px;
+            border: 1px solid rgba(255,215,0,0.3);
+        }
+
+        .coins-icon {
+            font-size: 20px;
+            animation: coinShine 2s infinite;
+        }
+
+        @keyframes coinShine {
+            0%, 100% { filter: brightness(1); }
+            50% { filter: brightness(1.3); }
+        }
+
+        .coins-value {
+            font-size: 16px;
+            font-weight: bold;
+            color: #ffd700;
+        }
+
+        /* 游戏区域 */
+        .game-container {
+            position: relative;
+            z-index: 10;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 10px 20px 20px;
+            width: 100%;
+            max-width: 500px;
+        }
+
+        /* 分数条 */
+        .score-bar {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding: 12px 20px;
+            background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%);
+            border-radius: 16px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .score-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .score-label {
+            font-size: 10px;
+            color: rgba(255,255,255,0.5);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 2px;
+        }
+
+        .score-value {
+            font-size: 22px;
+            font-weight: bold;
+            background: linear-gradient(135deg, #ffd700, #ffaa00);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 20px rgba(255,215,0,0.3);
+        }
+
+        .target-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 0 15px;
+            border-left: 1px solid rgba(255,255,255,0.1);
+            border-right: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .target-progress {
+            width: 80px;
+            height: 6px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 5px;
+        }
+
+        .target-progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #ffd700, #ff7f50);
+            border-radius: 3px;
+            transition: width 0.3s ease;
+        }
+
+        /* 棋盘容器 */
+        .board-wrapper {
+            position: relative;
+            width: 100%;
+            max-width: 380px;
+            aspect-ratio: 1;
+            padding: 8px;
+            background: linear-gradient(135deg, rgba(30,30,60,0.8) 0%, rgba(20,20,50,0.9) 100%);
+            border-radius: 20px;
+            border: 2px solid rgba(255,255,255,0.1);
+            box-shadow: 
+                0 20px 60px rgba(0,0,0,0.5),
+                inset 0 0 30px rgba(255,255,255,0.03);
+        }
+
+        .board {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            gap: 3px;
+            width: 100%;
+            height: 100%;
+        }
+
+        .cell {
+            aspect-ratio: 1;
+            background: rgba(255,255,255,0.03);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: transform 0.1s, background 0.2s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .cell:active {
+            transform: scale(0.92);
+        }
+
+        .cell.selected {
+            background: rgba(255,215,0,0.3);
+            box-shadow: 0 0 20px rgba(255,215,0,0.6);
+        }
+
+        .cell.selected::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border: 2px solid #ffd700;
+            border-radius: 8px;
+            animation: selectPulse 1s infinite;
+        }
+
+        @keyframes selectPulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .cell.hint {
+            animation: hintGlow 0.8s infinite;
+        }
+
+        @keyframes hintGlow {
+            0%, 100% { box-shadow: 0 0 5px rgba(255,255,255,0.3); }
+            50% { box-shadow: 0 0 20px rgba(255,255,255,0.6); }
+        }
+
+        .cell.matched {
+            animation: matchBurst 0.4s ease-out forwards;
+        }
+
+        @keyframes matchBurst {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.3); }
+            100% { transform: scale(0); opacity: 0; }
+        }
+
+        /* 角色样式 */
+        .character {
+            width: 90%;
+            height: 90%;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            position: relative;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            transition: transform 0.2s;
+        }
+
+        .character:hover {
+            transform: scale(1.1);
+        }
+
+        .character::after {
+            content: '';
+            position: absolute;
+            inset: -2px;
+            border-radius: 50%;
+            border: 2px solid rgba(255,255,255,0.3);
+        }
+
+        .star-badge {
+            position: absolute;
+            bottom: -4px;
+            right: -4px;
+            background: linear-gradient(135deg, #ffd700, #ffaa00);
+            color: #1a1a2e;
+            font-size: 8px;
+            font-weight: bold;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+        }
+
+        /* 技能能量条 */
+        .skill-bar {
+            width: 100%;
+            max-width: 380px;
+            margin-top: 15px;
+            padding: 12px 15px;
+            background: linear-gradient(135deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.03) 100%);
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .skill-label {
+            font-size: 10px;
+            color: rgba(255,255,255,0.5);
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .skill-track {
+            height: 10px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 5px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .skill-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2, #f093fb);
+            border-radius: 5px;
+            transition: width 0.3s ease;
+            position: relative;
+        }
+
+        .skill-fill::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+            animation: skillShine 2s infinite;
+        }
+
+        @keyframes skillShine {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        .skill-ready {
+            position: absolute;
+            right: 5px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 10px;
+            color: #ffd700;
+            font-weight: bold;
+            animation: readyPulse 0.5s infinite;
+        }
+
+        @keyframes readyPulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* 连击显示 */
+        .combo-display {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 48px;
+            font-weight: bold;
+            color: #ffd700;
+            text-shadow: 0 0 30px rgba(255,215,0,0.8);
+            pointer-events: none;
+            opacity: 0;
+            z-index: 100;
+        }
+
+        .combo-display.show {
+            animation: comboShow 0.8s ease-out forwards;
+        }
+
+        @keyframes comboShow {
+            0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
+            20% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
+            100% { opacity: 0; transform: translate(-50%, -50%) scale(1.5) translateY(-30px); }
+        }
+
+        /* 底部标签栏 */
+        .tab-bar {
+            position: relative;
+            z-index: 10;
+            width: 100%;
+            max-width: 500px;
+            display: flex;
+            justify-content: space-around;
+            padding: 12px 15px 20px;
+            background: linear-gradient(0deg, rgba(0,0,0,0.5) 0%, transparent 100%);
+        }
+
+        .tab-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            padding: 10px 20px;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: transparent;
+            border: none;
+            color: #fff;
+        }
+
+        .tab-item:hover, .tab-item.active {
+            background: rgba(255,255,255,0.1);
+        }
+
+        .tab-item.active .icon {
+            transform: scale(1.2);
+        }
+
+        .tab-item .icon {
+            font-size: 24px;
+            transition: transform 0.2s;
+        }
+
+        .tab-item .label {
+            font-size: 11px;
+            color: rgba(255,255,255,0.6);
+        }
+
+        .tab-item.active .label {
+            color: #ffd700;
+        }
+
+        /* 菜单界面 */
+        .menu-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(180deg, #0f0c29 0%, #1a1a3e 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+        }
+
+        .menu-screen.hidden {
+            display: none;
+        }
+
+        .game-logo {
+            width: 150px;
+            height: 150px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            border-radius: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 80px;
+            margin-bottom: 20px;
+            box-shadow: 
+                0 20px 60px rgba(102, 126, 234, 0.4),
+                0 0 100px rgba(240, 147, 251, 0.2);
+            animation: logoFloat 3s ease-in-out infinite;
+        }
+
+        @keyframes logoFloat {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .game-title {
+            font-size: 32px;
+            font-weight: bold;
+            margin-bottom: 8px;
+            background: linear-gradient(135deg, #ffd700, #ff7f50, #ffd700);
+            background-size: 200% auto;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: titleShine 3s linear infinite;
+        }
+
+        @keyframes titleShine {
+            0% { background-position: 0% center; }
+            100% { background-position: 200% center; }
+        }
+
+        .game-subtitle {
+            font-size: 14px;
+            color: rgba(255,255,255,0.5);
+            margin-bottom: 50px;
+        }
+
+        .menu-btn {
+            width: 220px;
+            padding: 16px 30px;
+            margin: 8px 0;
+            border: none;
+            border-radius: 30px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .menu-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .menu-btn:hover::before {
+            left: 100%;
+        }
+
+        .menu-btn:active {
+            transform: scale(0.95);
+        }
+
+        .menu-btn.primary {
+            background: linear-gradient(135deg, #ffd700, #ffaa00);
+            color: #1a1a2e;
+            box-shadow: 0 8px 25px rgba(255,215,0,0.4);
+        }
+
+        .menu-btn.secondary {
+            background: rgba(255,255,255,0.1);
+            color: #fff;
+            border: 2px solid rgba(255,255,255,0.2);
+        }
+
+        /* 结果弹窗 */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 200;
+            opacity: 1;
+            transition: opacity 0.3s;
+        }
+
+        .modal.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .modal-content {
+            background: linear-gradient(135deg, #1a1a3e 0%, #24243e 100%);
+            padding: 40px;
+            border-radius: 25px;
+            text-align: center;
+            max-width: 320px;
+            border: 1px solid rgba(255,255,255,0.1);
+            box-shadow: 0 30px 80px rgba(0,0,0,0.5);
+            transform: scale(1);
+            transition: transform 0.3s;
+        }
+
+        .modal.hidden .modal-content {
+            transform: scale(0.8);
+        }
+
+        .modal-icon {
+            font-size: 60px;
+            margin-bottom: 15px;
+        }
+
+        .modal-title {
+            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #ffd700;
+        }
+
+        .modal-score {
+            font-size: 56px;
+            font-weight: bold;
+            background: linear-gradient(135deg, #ffd700, #ffaa00);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+        }
+
+        .modal-reward {
+            color: rgba(255,255,255,0.7);
+            margin-bottom: 30px;
+            font-size: 16px;
+        }
+
+        /* 扭蛋界面 */
+        .sub-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(180deg, #0f0c29 0%, #1a1a3e 100%);
+            z-index: 50;
+            overflow-y: auto;
+            padding: 20px;
+            opacity: 1;
+            transition: opacity 0.3s;
+        }
+
+        .sub-screen.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .sub-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .back-btn {
+            width: 40px;
+            height: 40px;
+            background: rgba(255,255,255,0.1);
+            border: none;
+            border-radius: 12px;
+            color: #fff;
+            font-size: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .sub-title {
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .gashapon-machine {
+            width: 200px;
+            height: 250px;
+            margin: 30px auto;
+            background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
+            border-radius: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            box-shadow: 0 20px 60px rgba(102,126,234,0.4);
+        }
+
+        .machine-window {
+            width: 120px;
+            height: 120px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 50px;
+            margin-bottom: 20px;
+            border: 4px solid rgba(255,255,255,0.2);
+        }
+
+        .machine-btn {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #ffd700, #ffaa00);
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            color: #1a1a2e;
+            box-shadow: 0 5px 20px rgba(255,215,0,0.4);
+            transition: transform 0.2s;
+        }
+
+        .machine-btn:active {
+            transform: scale(0.9);
+        }
+
+        .gashapon-actions {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-bottom: 25px;
+        }
+
+        .gacha-btn {
+            padding: 12px 25px;
+            border-radius: 25px;
+            border: none;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .gacha-btn:active {
+            transform: scale(0.95);
+        }
+
+        .gacha-btn.single {
+            background: rgba(255,255,255,0.1);
+            color: #fff;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .gacha-btn.multi {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: #fff;
+        }
+
+        .gashapon-result {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 10px;
+            padding: 15px;
+            background: rgba(0,0,0,0.2);
+            border-radius: 15px;
+        }
+
+        .result-item {
+            aspect-ratio: 1;
+            background: rgba(255,255,255,0.05);
+            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            position: relative;
+        }
+
+        .result-item.new::after {
+            content: 'NEW';
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: #ffd700;
+            color: #1a1a2e;
+            font-size: 7px;
+            padding: 2px 4px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+
+        .result-item .stars {
+            font-size: 8px;
+            color: #ffd700;
+        }
+
+        /* 小屋界面 */
+        .house-container {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .house-card {
+            background: linear-gradient(135deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.03) 100%);
+            border-radius: 16px;
+            padding: 20px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .house-title {
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .house-chars {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .house-char {
+            width: 60px;
+            height: 75px;
+            background: rgba(0,0,0,0.2);
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .house-char:hover {
+            background: rgba(255,255,255,0.1);
+            transform: translateY(-3px);
+        }
+
+        .house-char-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            margin-bottom: 5px;
+        }
+
+        .house-char-count {
+            font-size: 10px;
+            color: rgba(255,255,255,0.6);
+        }
+
+        /* 角色详情弹窗 */
+        .char-detail {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.85);
+            backdrop-filter: blur(15px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 300;
+            opacity: 1;
+            transition: opacity 0.3s;
+        }
+
+        .char-detail.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .char-detail-content {
+            width: 90%;
+            max-width: 340px;
+            max-height: 85vh;
+            overflow-y: auto;
+            background: linear-gradient(135deg, #1a1a3e 0%, #24243e 100%);
+            border-radius: 25px;
+            padding: 30px 25px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .char-detail-header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .char-detail-icon {
+            width: 100px;
+            height: 100px;
+            border-radius: 25px;
+            margin: 0 auto 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 50px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        }
+
+        .char-detail-name {
+            font-size: 26px;
+            font-weight: bold;
+            color: #ffd700;
+            margin-bottom: 5px;
+        }
+
+        .char-detail-title {
+            font-size: 14px;
+            color: rgba(255,255,255,0.6);
+        }
+
+        .char-detail-rarity {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+
+        .char-detail-section {
+            margin-bottom: 18px;
+        }
+
+        .char-detail-label {
+            font-size: 11px;
+            color: rgba(255,255,255,0.4);
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .char-detail-value {
+            font-size: 14px;
+            color: rgba(255,255,255,0.9);
+            line-height: 1.5;
+        }
+
+        .char-detail-quote {
+            font-style: italic;
+            color: #ffd700;
+            padding: 15px;
+            background: rgba(255,215,0,0.1);
+            border-radius: 12px;
+            border-left: 3px solid #ffd700;
+        }
+
+        .char-detail-story {
+            font-size: 13px;
+            line-height: 1.7;
+            color: rgba(255,255,255,0.8);
+        }
+
+        .char-detail-close {
+            width: 100%;
+            padding: 14px;
+            background: rgba(255,255,255,0.1);
+            border: none;
+            border-radius: 15px;
+            color: #fff;
+            font-size: 15px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+
+        /* Toast提示 */
+        .toast {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.9);
+            color: #fff;
+            padding: 15px 35px;
+            border-radius: 30px;
+            font-size: 16px;
+            font-weight: bold;
+            z-index: 400;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+
+        .toast.show {
+            opacity: 1;
+        }
+
+        /* 图鉴界面 */
+        .gallery-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+        }
+
+        .gallery-item {
+            background: linear-gradient(135deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.03) 100%);
+            border-radius: 16px;
+            padding: 20px 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+        }
+
+        .gallery-item:hover {
+            background: rgba(255,255,255,0.12);
+            transform: translateY(-3px);
+        }
+
+        .gallery-item:active {
+            transform: scale(0.97);
+        }
+
+        .gallery-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            margin: 0 auto 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 30px;
+        }
+
+        .gallery-name {
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .gallery-rarity {
+            font-size: 11px;
+            color: rgba(255,255,255,0.5);
+        }
+
+        .gallery-owned {
+            font-size: 10px;
+            color: #ffd700;
+            margin-top: 5px;
+        }
+
+        /* 特效 */
+        .particle {
+            position: absolute;
+            pointer-events: none;
+            font-size: 20px;
+            animation: particleFly 1s ease-out forwards;
+        }
+
+        @keyframes particleFly {
+            0% { opacity: 1; transform: translate(0, 0) scale(1); }
+            100% { opacity: 0; transform: translate(var(--tx), var(--ty)) scale(0); }
+        }
+    </style>
+</head>
+<body>
+    <!-- 星空背景 -->
+    <div class="stars-bg" id="starsBg"></div>
+
+    <!-- 菜单界面 -->
+    <div class="menu-screen" id="menuScreen">
+        <div class="game-logo">🌟</div>
+        <div class="game-title">星星收集家</div>
+        <div class="game-subtitle">Star Collector</div>
+        
+        <button class="menu-btn primary" onclick="startGame()">开始游戏</button>
+        <button class="menu-btn secondary" onclick="showGallery()">角色图鉴</button>
+    </div>
+
+    <!-- 顶部栏 -->
+    <div class="header" id="gameHeader" style="display: none;">
+        <div class="level-info">
+            <span class="level-label">Level</span>
+            <span class="level-value" id="levelNum">1</span>
+        </div>
+        <div class="coins-info">
+            <span class="coins-icon">🪙</span>
+            <span class="coins-value" id="coinsNum">100</span>
+        </div>
+    </div>
+
+    <!-- 游戏区域 -->
+    <div class="game-container" id="gameContainer" style="display: none;">
+        <!-- 分数条 -->
+        <div class="score-bar">
+            <div class="score-section">
+                <span class="score-label">分数</span>
+                <span class="score-value" id="scoreNum">0</span>
+            </div>
+            <div class="target-section">
+                <span class="score-label">目标 <span id="targetNum">1000</span></span>
+                <div class="target-progress">
+                    <div class="target-progress-bar" id="progressBar" style="width: 0%"></div>
+                </div>
+            </div>
+            <div class="score-section">
+                <span class="score-label">步数</span>
+                <span class="score-value" id="movesNum">30</span>
+            </div>
+        </div>
+
+        <!-- 棋盘 -->
+        <div class="board-wrapper">
+            <div class="board" id="board"></div>
+            <div class="combo-display" id="comboDisplay"></div>
+        </div>
+
+        <!-- 技能条 -->
+        <div class="skill-bar">
+            <div class="skill-label">
+                <span>✨ 技能能量</span>
+                <span id="skillPercent">0%</span>
+            </div>
+            <div class="skill-track">
+                <div class="skill-fill" id="skillFill" style="width: 0%"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 底部标签栏 -->
+    <div class="tab-bar" id="tabBar" style="display: none;">
+        <button class="tab-item active" onclick="switchTab('game', this)">
+            <span class="icon">🎮</span>
+            <span class="label">消消乐</span>
+        </button>
+        <button class="tab-item" onclick="switchTab('gashapon', this)">
+            <span class="icon">🎰</span>
+            <span class="label">扭蛋</span>
+        </button>
+        <button class="tab-item" onclick="switchTab('house', this)">
+            <span class="icon">🏠</span>
+            <span class="label">小屋</span>
+        </button>
+        <button class="tab-item" onclick="switchTab('gallery', this)">
+            <span class="icon">📖</span>
+            <span class="label">图鉴</span>
+        </button>
+    </div>
+
+    <!-- 结果弹窗 -->
+    <div class="modal hidden" id="resultModal">
+        <div class="modal-content">
+            <div class="modal-icon" id="modalIcon">🎉</div>
+            <div class="modal-title" id="modalTitle">关卡完成!</div>
+            <div class="modal-score" id="modalScore">2500</div>
+            <div class="modal-reward" id="modalReward">获得 100 金币</div>
+            <button class="menu-btn primary" onclick="handleModalBtn()">继续</button>
+        </div>
+    </div>
+
+    <!-- 扭蛋界面 -->
+    <div class="sub-screen hidden" id="gashaponScreen">
+        <div class="sub-header">
+            <button class="back-btn" onclick="hideGashapon()">←</button>
+            <span class="sub-title">🎰 星空扭蛋机</span>
+        </div>
+        
+        <div class="gashapon-machine">
+            <div class="machine-window" id="machineWindow">🌟</div>
+            <button class="machine-btn" onclick="singlePull()">单抽</button>
+        </div>
+        
+        <div class="gashapon-actions">
+            <button class="gacha-btn single" onclick="singlePull()">单抽 10🪙</button>
+            <button class="gacha-btn multi" onclick="multiPull()">十连 90🪙</button>
+        </div>
+        
+        <div class="gashapon-result" id="gashaponResult">
+            <div style="grid-column: 1/-1; text-align: center; color: rgba(255,255,255,0.4); padding: 20px;">
+                抽取角色展示区
+            </div>
+        </div>
+    </div>
+
+    <!-- 小屋界面 -->
+    <div class="sub-screen hidden" id="houseScreen">
+        <div class="sub-header">
+            <button class="back-btn" onclick="hideHouse()">←</button>
+            <span class="sub-title">🏠 我的星星小屋</span>
+        </div>
+        
+        <div class="house-container">
+            <div class="house-card">
+                <div class="house-title">🌟 已收集角色 <span id="charCount">0/6</span></div>
+                <div class="house-chars" id="houseChars">
+                    <div style="width: 100%; text-align: center; color: rgba(255,255,255,0.4); padding: 30px;">
+                        暂时还没有角色，去扭蛋机抽取吧！
+                    </div>
+                </div>
+            </div>
+            
+            <div class="house-card">
+                <div class="house-title">📊 收集进度</div>
+                <div style="display: flex; gap: 10px; flex-wrap: wrap;" id="collectionProgress">
+                    <!-- 进度条由JS生成 -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 角色图鉴 -->
+    <div class="sub-screen hidden" id="galleryScreen">
+        <div class="sub-header">
+            <button class="back-btn" onclick="hideGallery()">←</button>
+            <span class="sub-title">📖 角色图鉴</span>
+        </div>
+        <div class="gallery-grid" id="galleryGrid"></div>
+    </div>
+
+    <!-- 角色详情弹窗 -->
+    <div class="char-detail hidden" id="charDetail">
+        <div class="char-detail-content" id="charDetailContent">
+            <!-- 由JS生成 -->
+        </div>
+    </div>
+
+    <!-- Toast提示 -->
+    <div class="toast" id="toast"></div>
+
+    <script>
+        // ==================== 游戏配置 ====================
+        const CONFIG = {
+            ROWS: 8,
+            COLS: 8,
+            INITIAL_MOVES: 25,
+            INITIAL_COINS: 200,
+            LEVEL_TARGET_MULTIPLIER: 800,
+            LEVEL_REWARD_MULTIPLIER: 40,
+            SINGLE_GASHAPON_COST: 10,
+            MULTI_GASHAPON_COST: 90,
+            SKILL_THRESHOLD: 50 // 消除50个能量满
+        };
+
+        // 角色配置
+        const CHARACTERS = [
+            {
+                id: 'sakura', name: '小樱', emoji: '🌸', color: '#ffb7c5',
+                rarity: 'N', title: '春之温暖', location: '樱花谷',
+                personality: '温柔善良、乐于助人',
+                skill: '樱花冲击', skillDesc: '3×3范围消除',
+                quote: '每一朵樱花的飘落，都是我在为大地送去春天的祝福。',
+                story: '小樱诞生于星缘大陆的樱花谷，那里终年盛开着永不凋谢的樱花树。她是春之星的守护者，负责将春天的温暖散布到整个大陆。'
+            },
+            {
+                id: 'moonbear', name: '月宝', emoji: '🌙', color: '#9b88d4',
+                rarity: 'R', title: '冬之静谧', location: '月光森林',
+                personality: '沉稳内敛、富有智慧',
+                skill: '月光净化', skillDesc: '消除整列',
+                quote: '月亮从不言语，但它永远在那里，守护着每一个需要安静的夜晚。',
+                story: '月宝住在月光森林最深处的月光洞穴中。他是冬之星的守护者，负责在漫长的冬夜里为星缘大陆带来宁静与安眠。'
+            },
+            {
+                id: 'starry', name: '星旅', emoji: '⭐', color: '#87ceeb',
+                rarity: 'R', title: '夏之清凉', location: '流星草原',
+                personality: '活泼好奇、热爱冒险',
+                skill: '流星雨', skillDesc: '消除整行',
+                quote: '每一颗划过的流星，都是我在告诉你：远方还有无限的可能在等着你。',
+                story: '星旅来自星缘大陆边缘的流星草原，那里是星星们最喜欢降落的地方。他是夏之星的守护者，负责将夏夜最凉爽的风和最璀璨的流星带给大家。'
+            },
+            {
+                id: 'bubble', name: '泡泡', emoji: '🫧', color: '#b8e4f0',
+                rarity: 'N', title: '秋之丰硕', location: '珍珠海湾',
+                personality: '天真烂漫、梦幻纯真',
+                skill: '泡泡爆炸', skillDesc: '3×3范围释放光芒',
+                quote: '每一个泡泡里，都装着一个还没醒来的美梦。',
+                story: '泡泡生活在星缘大陆最美的珍珠海湾，那里有着永远不会干涸的清澈海水。他是秋之星的守护者，负责将海洋的富饶和珍珠海湾的梦幻带入每个人的梦乡。'
+            },
+            {
+                id: 'rainbow', name: '彩彩', emoji: '🌈', color: '#ffb347',
+                rarity: 'SR', title: '梦想之翼', location: '彩虹之巅',
+                personality: '热情开朗、充满活力',
+                skill: '彩虹桥', skillDesc: '消除所有同色',
+                quote: '就算下着雨，也别忘了抬头看看，说不定下一秒，彩虹就会出现。',
+                story: '彩彩住在星缘大陆最高的彩虹之巅，那里是彩虹诞生的地方。他是梦想之星的守护者，负责将彩虹和希望带往每一个需要勇气的角落。'
+            },
+            {
+                id: 'sunset', name: '夕火', emoji: '🔥', color: '#ff7f50',
+                rarity: 'SSR', title: '永恒之约', location: '落日火山',
+                personality: '热情似火、外冷内热',
+                skill: '落日余晖', skillDesc: '全屏消除低星级',
+                quote: '太阳每天都会落下，但明天它一定会再次升起。这就是我守护的约定。',
+                story: '夕火守护着星缘大陆最神秘的地方——落日火山，那里是太阳休息的地方。他是永恒之星的守护者，负责守护星缘大陆与太阳的约定。'
+            }
+        ];
+
+        // 稀有度概率
+        const RARITY_PROBS = { 'N': 60, 'R': 30, 'SR': 8, 'SSR': 2 };
+
+        // ==================== 游戏状态 ====================
+        let gameState = {
+            level: 1,
+            score: 0,
+            moves: CONFIG.INITIAL_MOVES,
+            coins: CONFIG.INITIAL_COINS,
+            board: [],
+            selectedCell: null,
+            isProcessing: false,
+            isPlaying: false,
+            ownedCharacters: {},
+            comboCount: 0,
+            skillEnergy: 0,      // 技能能量
+            totalMatched: 0      // 本关消除总数
+        };
+
+        // ==================== 初始化 ====================
+        function init() {
+            createStars();
+            loadGameData();
+            renderBoard();
+            updateUI();
+        }
+
+        function createStars() {
+            const container = document.getElementById('starsBg');
+            for (let i = 0; i < 100; i++) {
+                const star = document.createElement('div');
+                star.className = 'star';
+                star.style.left = Math.random() * 100 + '%';
+                star.style.top = Math.random() * 100 + '%';
+                star.style.animationDelay = Math.random() * 3 + 's';
+                star.style.width = Math.random() * 2 + 1 + 'px';
+                star.style.height = star.style.width;
+                container.appendChild(star);
+            }
+        }
+
+        function loadGameData() {
+            const saved = localStorage.getItem('xingxing_game_data');
+            if (saved) {
+                const data = JSON.parse(saved);
+                gameState.level = data.level || 1;
+                gameState.coins = data.coins || CONFIG.INITIAL_COINS;
+                gameState.ownedCharacters = data.ownedCharacters || {};
+            }
+        }
+
+        function saveGameData() {
+            localStorage.setItem('xingxing_game_data', JSON.stringify({
+                level: gameState.level,
+                coins: gameState.coins,
+                ownedCharacters: gameState.ownedCharacters
+            }));
+        }
+
+        // ==================== 菜单操作 ====================
+        function startGame() {
+            document.getElementById('menuScreen').classList.add('hidden');
+            document.getElementById('gameHeader').style.display = 'flex';
+            document.getElementById('gameContainer').style.display = 'flex';
+            document.getElementById('tabBar').style.display = 'flex';
+            
+            gameState.score = 0;
+            gameState.moves = CONFIG.INITIAL_MOVES + (gameState.level - 1) * 2;
+            gameState.isPlaying = true;
+            gameState.isProcessing = false;
+            gameState.comboCount = 0;
+            gameState.skillEnergy = 0;
+            gameState.totalMatched = 0;
+            
+            initBoard();
+            updateUI();
+        }
+
+        function returnToMenu() {
+            document.getElementById('menuScreen').classList.remove('hidden');
+            document.getElementById('gameHeader').style.display = 'none';
+            document.getElementById('gameContainer').style.display = 'none';
+            document.getElementById('tabBar').style.display = 'none';
+            gameState.isPlaying = false;
+        }
+
+        // ==================== 棋盘逻辑 ====================
+        function initBoard() {
+            gameState.board = [];
+            gameState.selectedCell = null;
+            
+            for (let row = 0; row < CONFIG.ROWS; row++) {
+                gameState.board[row] = [];
+                for (let col = 0; col < CONFIG.COLS; col++) {
+                    let char;
+                    let attempts = 0;
+                    do {
+                        char = CHARACTERS[Math.floor(Math.random() * CHARACTERS.length)];
+                        attempts++;
+                    } while (wouldMatch(row, col, char.id) && attempts < 50);
+                    
+                    gameState.board[row][col] = { ...char, row, col };
+                }
+            }
+            
+            renderBoard();
+        }
+
+        function wouldMatch(row, col, charId) {
+            if (col >= 2) {
+                if (gameState.board[row][col-1]?.id === charId && 
+                    gameState.board[row][col-2]?.id === charId) return true;
+            }
+            if (row >= 2) {
+                if (gameState.board[row-1]?.[col]?.id === charId && 
+                    gameState.board[row-2]?.[col]?.id === charId) return true;
+            }
+            return false;
+        }
+
+        function renderBoard() {
+            const boardEl = document.getElementById('board');
+            boardEl.innerHTML = '';
+            boardEl.style.gridTemplateColumns = `repeat(${CONFIG.COLS}, 1fr)`;
+            
+            for (let row = 0; row < CONFIG.ROWS; row++) {
+                for (let col = 0; col < CONFIG.COLS; col++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    cell.dataset.row = row;
+                    cell.dataset.col = col;
+                    
+                    const char = gameState.board[row]?.[col];
+                    if (char) {
+                        cell.innerHTML = `
+                            <div class="character" data-id="${char.id}" style="background: linear-gradient(135deg, ${char.color}, ${adjustColor(char.color, -30)});">
+                                <span>${char.emoji}</span>
+                                <div class="star-badge">${char.star || 1}</div>
+                            </div>
+                        `;
+                    }
+                    
+                    cell.addEventListener('click', () => onCellClick(row, col));
+                    boardEl.appendChild(cell);
+                }
+            }
+        }
+
+        function adjustColor(hex, amount) {
+            const num = parseInt(hex.slice(1), 16);
+            const r = Math.max(0, Math.min(255, (num >> 16) + amount));
+            const g = Math.max(0, Math.min(255, ((num >> 8) & 0x00FF) + amount));
+            const b = Math.max(0, Math.min(255, (num & 0x0000FF) + amount));
+            return `#${(1 << 24 | r << 16 | g << 8 | b).toString(16).slice(1)}`;
+        }
+
+        function onCellClick(row, col) {
+            if (!gameState.isPlaying || gameState.isProcessing) return;
+            
+            const char = gameState.board[row][col];
+            if (!char) return;
+            
+            if (!gameState.selectedCell) {
+                gameState.selectedCell = { row, col };
+                highlightCell(row, col);
+            } else if (gameState.selectedCell.row === row && gameState.selectedCell.col === col) {
+                clearHighlights();
+                gameState.selectedCell = null;
+            } else if (isAdjacent(gameState.selectedCell, { row, col })) {
+                swapCells(gameState.selectedCell, { row, col });
+            } else {
+                clearHighlights();
+                gameState.selectedCell = { row, col };
+                highlightCell(row, col);
+            }
+        }
+
+        function isAdjacent(pos1, pos2) {
+            const rowDiff = Math.abs(pos1.row - pos2.row);
+            const colDiff = Math.abs(pos1.col - pos2.col);
+            return (rowDiff === 1 && colDiff === 0) || (rowDiff === 0 && colDiff === 1);
+        }
+
+        function highlightCell(row, col) {
+            const cell = getCellElement(row, col);
+            if (cell) cell.classList.add('selected');
+        }
+
+        function clearHighlights() {
+            document.querySelectorAll('.cell.selected').forEach(el => el.classList.remove('selected'));
+        }
+
+        function getCellElement(row, col) {
+            return document.querySelector(`.cell[data-row="${row}"][data-col="${col}"]`);
+        }
+
+        async function swapCells(pos1, pos2) {
+            gameState.isProcessing = true;
+            clearHighlights();
+            
+            const temp = gameState.board[pos1.row][pos1.col];
+            gameState.board[pos1.row][pos1.col] = gameState.board[pos2.row][pos2.col];
+            gameState.board[pos2.row][pos2.col] = temp;
+            
+            if (gameState.board[pos1.row][pos1.col]) {
+                gameState.board[pos1.row][pos1.col].row = pos1.row;
+                gameState.board[pos1.row][pos1.col].col = pos1.col;
+            }
+            if (gameState.board[pos2.row][pos2.col]) {
+                gameState.board[pos2.row][pos2.col].row = pos2.row;
+                gameState.board[pos2.row][pos2.col].col = pos2.col;
+            }
+            
+            renderBoard();
+            
+            const matches = findMatches();
+            
+            if (matches.length > 0) {
+                gameState.selectedCell = null;
+                gameState.comboCount = 0;
+                await processMatches(matches);
+            } else {
+                await delay(200);
+                const temp2 = gameState.board[pos1.row][pos1.col];
+                gameState.board[pos1.row][pos1.col] = gameState.board[pos2.row][pos2.col];
+                gameState.board[pos2.row][pos2.col] = temp2;
+                
+                if (gameState.board[pos1.row][pos1.col]) {
+                    gameState.board[pos1.row][pos1.col].row = pos1.row;
+                    gameState.board[pos1.row][pos1.col].col = pos1.col;
+                }
+                if (gameState.board[pos2.row][pos2.col]) {
+                    gameState.board[pos2.row][pos2.col].row = pos2.row;
+                    gameState.board[pos2.row][pos2.col].col = pos2.col;
+                }
+                
+                renderBoard();
+            }
+            
+            gameState.selectedCell = null;
+            gameState.isProcessing = false;
+            
+            gameState.moves--;
+            updateUI();
+            
+            if (gameState.moves <= 0) {
+                checkLevelResult();
+            }
+        }
+
+        function findMatches() {
+            const matches = [];
+            const visited = Array(CONFIG.ROWS).fill(null).map(() => Array(CONFIG.COLS).fill(false));
+            
+            for (let row = 0; row < CONFIG.ROWS; row++) {
+                for (let col = 0; col < CONFIG.COLS - 2; col++) {
+                    const char = gameState.board[row][col];
+                    if (!char) continue;
+                    
+                    let matchLength = 1;
+                    while (col + matchLength < CONFIG.COLS && 
+                           gameState.board[row][col + matchLength]?.id === char.id) {
+                        matchLength++;
+                    }
+                    
+                    if (matchLength >= 3) {
+                        const match = [];
+                        for (let i = 0; i < matchLength; i++) {
+                            if (!visited[row][col + i]) {
+                                match.push({ row, col: col + i, char });
+                                visited[row][col + i] = true;
+                            }
+                        }
+                        if (match.length > 0) matches.push(match);
+                        col += matchLength - 1;
+                    }
+                }
+            }
+            
+            for (let col = 0; col < CONFIG.COLS; col++) {
+                for (let row = 0; row < CONFIG.ROWS - 2; row++) {
+                    const char = gameState.board[row][col];
+                    if (!char) continue;
+                    
+                    let matchLength = 1;
+                    while (row + matchLength < CONFIG.ROWS && 
+                           gameState.board[row + matchLength]?.[col]?.id === char.id) {
+                        matchLength++;
+                    }
+                    
+                    if (matchLength >= 3) {
+                        const match = [];
+                        for (let i = 0; i < matchLength; i++) {
+                            if (!visited[row + i][col]) {
+                                match.push({ row: row + i, col, char });
+                                visited[row + i][col] = true;
+                            }
+                        }
+                        if (match.length > 0) matches.push(match);
+                        row += matchLength - 1;
+                    }
+                }
+            }
+            
+            return matches;
+        }
+
+        async function processMatches(matches) {
+            gameState.comboCount++;
+            
+            let totalMatched = 0;
+            matches.forEach(match => {
+                totalMatched += match.length;
+                match.forEach(pos => {
+                    const cell = getCellElement(pos.row, pos.col);
+                    if (cell) cell.classList.add('matched');
+                });
+            });
+            
+            const baseScore = 20;
+            const comboBonus = gameState.comboCount * 0.5;
+            const matchBonus = Math.min(totalMatched / 3, 3);
+            const scoreGain = Math.floor(totalMatched * baseScore * (1 + comboBonus) * matchBonus);
+            
+            gameState.score += scoreGain;
+            gameState.totalMatched += totalMatched;
+            
+            // 更新技能能量
+            gameState.skillEnergy = Math.min(CONFIG.SKILL_THRESHOLD, gameState.skillEnergy + totalMatched);
+            
+            // 显示连击
+            if (gameState.comboCount >= 2) {
+                showCombo(gameState.comboCount);
+            }
+            
+            // 显示得分飘字
+            showScorePopup(scoreGain);
+            
+            updateUI();
+            
+            await delay(300);
+            
+            matches.forEach(match => {
+                match.forEach(pos => {
+                    gameState.board[pos.row][pos.col] = null;
+                });
+            });
+            
+            renderBoard();
+            await delay(100);
+            
+            await dropAndFill();
+            
+            const newMatches = findMatches();
+            if (newMatches.length > 0) {
+                await delay(200);
+                await processMatches(newMatches);
+            }
+        }
+
+        async function dropAndFill() {
+            for (let col = 0; col < CONFIG.COLS; col++) {
+                let emptyRow = -1;
+                
+                for (let row = CONFIG.ROWS - 1; row >= 0; row--) {
+                    if (!gameState.board[row][col]) {
+                        if (emptyRow === -1) emptyRow = row;
+                    } else if (emptyRow !== -1) {
+                        gameState.board[emptyRow][col] = gameState.board[row][col];
+                        gameState.board[emptyRow][col].row = emptyRow;
+                        gameState.board[row][col] = null;
+                        emptyRow--;
+                    }
+                }
+                
+                for (let row = emptyRow; row >= 0; row--) {
+                    const char = CHARACTERS[Math.floor(Math.random() * CHARACTERS.length)];
+                    gameState.board[row][col] = { ...char, row, col };
+                }
+            }
+            
+            renderBoard();
+            await delay(300);
+        }
+
+        function showCombo(count) {
+            const display = document.getElementById('comboDisplay');
+            display.textContent = `${count} COMBO!`;
+            display.classList.remove('show');
+            void display.offsetWidth;
+            display.classList.add('show');
+        }
+
+        function showScorePopup(score) {
+            const board = document.getElementById('board');
+            const popup = document.createElement('div');
+            popup.style.cssText = `
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                font-size: 24px;
+                font-weight: bold;
+                color: #ffd700;
+                text-shadow: 0 0 10px rgba(255,215,0,0.8);
+                pointer-events: none;
+                animation: comboShow 0.8s ease-out forwards;
+                z-index: 100;
+            `;
+            popup.textContent = `+${score}`;
+            popup.onanimationend = () => popup.remove();
+            board.parentElement.appendChild(popup);
+        }
+
+        // ==================== 关卡逻辑 ====================
+        function checkLevelResult() {
+            const target = gameState.level * CONFIG.LEVEL_TARGET_MULTIPLIER;
+            
+            if (gameState.score >= target) {
+                const reward = gameState.level * CONFIG.LEVEL_REWARD_MULTIPLIER;
+                gameState.coins += reward;
+                gameState.level++;
+                
+                saveGameData();
+                showModal(true, gameState.score, reward);
+            } else {
+                showModal(false, gameState.score, 0);
+            }
+        }
+
+        function showModal(success, score, reward) {
+            document.getElementById('modalIcon').textContent = success ? '🎉' : '😢';
+            document.getElementById('modalTitle').textContent = success ? '关卡完成!' : '挑战失败';
+            document.getElementById('modalScore').textContent = score;
+            document.getElementById('modalReward').textContent = success ? `获得 ${reward} 金币` : `目标 ${gameState.level * CONFIG.LEVEL_TARGET_MULTIPLIER} 分`;
+            document.getElementById('resultModal').classList.remove('hidden');
+        }
+
+        function hideModal() {
+            document.getElementById('resultModal').classList.add('hidden');
+        }
+
+        function handleModalBtn() {
+            hideModal();
+            startGame();
+        }
+
+        // ==================== 扭蛋系统 ====================
+        function showGashapon() {
+            document.getElementById('gashaponScreen').classList.remove('hidden');
+        }
+
+        function hideGashapon() {
+            document.getElementById('gashaponScreen').classList.add('hidden');
+            switchTab('game', document.querySelector('.tab-item'));
+        }
+
+        function singlePull() {
+            if (gameState.coins < CONFIG.SINGLE_GASHAPON_COST) {
+                showToast('金币不足!');
+                return;
+            }
+            
+            gameState.coins -= CONFIG.SINGLE_GASHAPON_COST;
+            const result = rollGashapon();
+            addCharacter(result.id);
+            showGashaponResult([result]);
+            updateUI();
+        }
+
+        function multiPull() {
+            if (gameState.coins < CONFIG.MULTI_GASHAPON_COST) {
+                showToast('金币不足!');
+                return;
+            }
+            
+            gameState.coins -= CONFIG.MULTI_GASHAPON_COST;
+            const results = [];
+            for (let i = 0; i < 10; i++) {
+                results.push(rollGashapon());
+                addCharacter(results[i].id);
+            }
+            showGashaponResult(results);
+            updateUI();
+        }
+
+        function rollGashapon() {
+            let roll = Math.random() * 100;
+            let rarity = 'N';
+            let cumulative = 0;
+            
+            for (const [r, prob] of Object.entries(RARITY_PROBS)) {
+                cumulative += prob;
+                if (roll < cumulative) {
+                    rarity = r;
+                    break;
+                }
+            }
+            
+            const eligible = CHARACTERS.filter(c => c.rarity === rarity);
+            const char = eligible[Math.floor(Math.random() * eligible.length)];
+            
+            return { ...char, isNew: !gameState.ownedCharacters[char.id] };
+        }
+
+        function addCharacter(charId) {
+            gameState.ownedCharacters[charId] = (gameState.ownedCharacters[charId] || 0) + 1;
+            saveGameData();
+        }
+
+        function showGashaponResult(results) {
+            const container = document.getElementById('gashaponResult');
+            container.innerHTML = '';
+            
+            results.forEach((result, index) => {
+                const item = document.createElement('div');
+                item.className = 'result-item' + (result.isNew ? ' new' : '');
+                item.style.background = `linear-gradient(135deg, ${result.color}44, ${result.color}22)`;
+                item.innerHTML = `
+                    <span style="font-size: 24px;">${result.emoji}</span>
+                    <span class="stars">${'⭐'.repeat(getRarityStar(result.rarity))}</span>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        function getRarityStar(rarity) {
+            return { 'N': 1, 'R': 2, 'SR': 3, 'SSR': 4 }[rarity] || 1;
+        }
+
+        // ==================== 小屋系统 ====================
+        function showHouse() {
+            document.getElementById('houseScreen').classList.remove('hidden');
+            renderHouse();
+        }
+
+        function hideHouse() {
+            document.getElementById('houseScreen').classList.add('hidden');
+            switchTab('game', document.querySelector('.tab-item'));
+        }
+
+        function renderHouse() {
+            const container = document.getElementById('houseChars');
+            const owned = Object.keys(gameState.ownedCharacters).filter(id => gameState.ownedCharacters[id] > 0);
+            
+            document.getElementById('charCount').textContent = `${owned.length}/6`;
+            
+            if (owned.length === 0) {
+                container.innerHTML = `
+                    <div style="width: 100%; text-align: center; color: rgba(255,255,255,0.4); padding: 30px;">
+                        暂时还没有角色，去扭蛋机抽取吧！
+                    </div>
+                `;
+            } else {
+                container.innerHTML = '';
+                owned.forEach(id => {
+                    const char = CHARACTERS.find(c => c.id === id);
+                    const count = gameState.ownedCharacters[id];
+                    const div = document.createElement('div');
+                    div.className = 'house-char';
+                    div.onclick = () => showCharacterDetail(char);
+                    div.innerHTML = `
+                        <div class="house-char-icon" style="background: ${char.color};">${char.emoji}</div>
+                        <div class="house-char-count">×${count}</div>
+                    `;
+                    container.appendChild(div);
+                });
+            }
+            
+            // 渲染收集进度
+            const progressContainer = document.getElementById('collectionProgress');
+            progressContainer.innerHTML = CHARACTERS.map(char => {
+                const isOwned = gameState.ownedCharacters[char.id] > 0;
+                return `
+                    <div style="flex: 1; min-width: 60px; background: rgba(255,255,255,0.05); border-radius: 8px; padding: 10px; text-align: center; ${isOwned ? 'border: 1px solid ' + char.color : ''}">
+                        <div style="font-size: 20px; margin-bottom: 5px;">${isOwned ? char.emoji : '❓'}</div>
+                        <div style="font-size: 10px; color: rgba(255,255,255,0.5);">${isOwned ? char.name : '???'}</div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // ==================== 角色图鉴 ====================
+        function showGallery() {
+            document.getElementById('galleryScreen').classList.remove('hidden');
+            renderGallery();
+        }
+
+        function hideGallery() {
+            document.getElementById('galleryScreen').classList.add('hidden');
+            switchTab('game', document.querySelector('.tab-item'));
+        }
+
+        function renderGallery() {
+            const container = document.getElementById('galleryGrid');
+            container.innerHTML = '';
+            
+            CHARACTERS.forEach(char => {
+                const owned = gameState.ownedCharacters[char.id] || 0;
+                const item = document.createElement('div');
+                item.className = 'gallery-item';
+                item.onclick = () => showCharacterDetail(char);
+                item.innerHTML = `
+                    <div class="gallery-icon" style="background: linear-gradient(135deg, ${char.color}, ${adjustColor(char.color, -30)});">${char.emoji}</div>
+                    <div class="gallery-name">${char.name}</div>
+                    <div class="gallery-rarity">${char.rarity} · ${char.title}</div>
+                    <div class="gallery-owned">拥有: ${owned}</div>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        function showCharacterDetail(char) {
+            const owned = gameState.ownedCharacters[char.id] || 0;
+            const detail = document.getElementById('charDetail');
+            const content = document.getElementById('charDetailContent');
+            
+            content.innerHTML = `
+                <div class="char-detail-header">
+                    <div class="char-detail-icon" style="background: linear-gradient(135deg, ${char.color}, ${adjustColor(char.color, -30)});">${char.emoji}</div>
+                    <div class="char-detail-name">${char.name}</div>
+                    <div class="char-detail-title">${char.title}</div>
+                    <div class="char-detail-rarity" style="background: ${char.color}33; color: ${char.color}; border: 1px solid ${char.color};">${char.rarity}</div>
+                </div>
+                
+                <div class="char-detail-section">
+                    <div class="char-detail-label">📍 居住地</div>
+                    <div class="char-detail-value">${char.location}</div>
+                </div>
+                
+                <div class="char-detail-section">
+                    <div class="char-detail-label">💫 性格特点</div>
+                    <div class="char-detail-value">${char.personality}</div>
+                </div>
+                
+                <div class="char-detail-section">
+                    <div class="char-detail-label">⚡ 技能：${char.skill}</div>
+                    <div class="char-detail-value" style="color: ${char.color};">${char.skillDesc}</div>
+                </div>
+                
+                <div class="char-detail-section">
+                    <div class="char-detail-label">💬 经典语录</div>
+                    <div class="char-detail-quote">"${char.quote}"</div>
+                </div>
+                
+                <div class="char-detail-section">
+                    <div class="char-detail-label">📖 背景故事</div>
+                    <div class="char-detail-story">${char.story}</div>
+                </div>
+                
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.1);">
+                    <div style="font-size: 14px;">拥有数量: <span style="color: #ffd700; font-weight: bold;">${owned}</span></div>
+                    <button class="char-detail-close" onclick="hideCharacterDetail()">关闭</button>
+                </div>
+            `;
+            
+            detail.classList.remove('hidden');
+        }
+
+        function hideCharacterDetail() {
+            document.getElementById('charDetail').classList.add('hidden');
+        }
+
+        // ==================== 标签切换 ====================
+        function switchTab(tab, btn) {
+            if (btn) {
+                document.querySelectorAll('.tab-item').forEach(item => item.classList.remove('active'));
+                btn.classList.add('active');
+            }
+            
+            hideGashapon();
+            hideHouse();
+            hideGallery();
+            
+            if (tab === 'gashapon') showGashapon();
+            if (tab === 'house') showHouse();
+            if (tab === 'gallery') showGallery();
+        }
+
+        // ==================== UI更新 ====================
+        function updateUI() {
+            document.getElementById('levelNum').textContent = gameState.level;
+            document.getElementById('coinsNum').textContent = gameState.coins;
+            document.getElementById('scoreNum').textContent = gameState.score;
+            document.getElementById('movesNum').textContent = gameState.moves;
+            
+            const target = gameState.level * CONFIG.LEVEL_TARGET_MULTIPLIER;
+            document.getElementById('targetNum').textContent = target;
+            const progress = Math.min(100, (gameState.score / target) * 100);
+            document.getElementById('progressBar').style.width = progress + '%';
+            
+            const skillPercent = Math.min(100, (gameState.skillEnergy / CONFIG.SKILL_THRESHOLD) * 100);
+            document.getElementById('skillPercent').textContent = skillPercent + '%';
+            document.getElementById('skillFill').style.width = skillPercent + '%';
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 2000);
+        }
+
+        // ==================== 工具函数 ====================
+        function delay(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        // 启动游戏
+        init();
+    </script>
+</body>
+</html>
